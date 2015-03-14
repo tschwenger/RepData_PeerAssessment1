@@ -1,0 +1,134 @@
+---
+title: "reproduciblepeerassessment1"
+author: "Thomas Schwenger"
+date: "Saturday, March 14, 2015"
+output: html_document
+---
+
+Reproducible Research: Peer Assessment 1 
+===================================
+
+##Loading and Proprocessing the data
+The first thing we want to do is load the data into R from the working directory. This was the "Activity monitoring data" pulled for the course project and the data. Relevent packages such as ggplot2 and dplyr were also loaded for future work in the data set. 
+
+```{r, echo=FALSE}
+#library(ggplot2)
+library(dplyr)
+```
+
+Load the relevent files from the working directory
+This also checks to understand the class. For this particular assignment the variables do not need to be changed yet
+```{r,}
+activity <- read.csv("./activity.csv", stringsAsFactors = FALSE)
+
+str(activity) #gets the class of each variable. We see we need to convert some of the variables
+```
+
+##What is the mean total number of steps taken per day
+In order to calculate the total number of steps taken per day, the "aggregate" function needs to be used to sum the steps per day and is shown in the function below:
+
+This calculates the total number of steps taken per day
+```{r}
+stepsperday <- aggregate(steps ~ date, activity, sum)
+stepsperday
+```
+
+Here is a histogram of the total number of steps taken per day
+```{r}
+hist(stepsperday$steps, breaks = 15, xlab = "Steps per Day", ylab ="Frequency", main = "Steps per Day from 10/1/2012 to 11/29/2012", col = "blue")
+```
+The mean number of steps per day is calculated below using the following code
+```{r}
+mean <- mean(stepsperday$steps, na.rm=FALSE)
+mean
+```
+The median number of steps per day is calculated below using the follow code
+```{r}
+median <- median(stepsperday$steps, na.rm=FALSE)
+median
+```
+##What is the average daily activity pattern?
+Make a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged all days.
+
+So in order to do this, the best strategy is to take the aggregated mean of the steps per interval and is shown in the R code below:
+```{r}
+meanstepsinterval <- aggregate(x=list(meanSteps=activity$steps), by=list(interval=activity$interval), FUN=mean, na.rm=TRUE)
+```
+```{r}
+plot(meanstepsinterval$interval, meanstepsinterval$meanSteps, type = "l", xlab = "Interval", ylab ="Mean Steps", main = "Average Steps taken during daily intervals")
+```
+
+What 5 minute interval contains the most steps per interval. In other words, which interval has the highest mean. 
+```{r, echo=FALSE}
+max <- meanstepsinterval[order(meanstepsinterval$meanSteps),]
+nrow(max)
+```
+This is a round about way, but here is the interval:
+```{r}
+max[288,]
+```
+So the interval with the most steps on average is 8:35AM with ~206 steps on average in this interval.  This corresponds to the peak in the figure above
+
+## Imputing missing values
+Let;s take a look at how many NAs there are in the "activity" data set:
+```{r}
+summary(activity)
+```
+If you look at the "steps" summary, we see there are 2304 NAs in the data set
+
+Creating a new data set with NAs filled in:
+```{r}
+imvals <- meanstepsinterval
+names(imvals)[2] <- "activitylabels"
+completeactivity <- merge(activity, imvals)
+completeactivity$steps[is.na(completeactivity$steps)] <- completeactivity$activitylabels[is.na(completeactivity$steps)]
+head(completeactivity)
+```
+Histogram of the full data set
+```{r}
+completeactivitystepsperday <- aggregate(steps ~ date, completeactivity, sum)
+hist(completeactivitystepsperday$steps, breaks = 15, xlab = "Steps per Day", ylab ="Frequency", main = "Steps per Day from 10/1/2012 to 11/29/2012 Remove NA", col = "blue")
+```
+
+Calculating the mean of the data set:
+```{r}
+completeactivitymean <- mean(completeactivitystepsperday$steps)
+completeactivitymean
+```
+
+Calculating the median of the data set:
+```{r}
+completeactivitymedian <- median(completeactivitystepsperday$steps)
+completeactivitymedian
+```
+As you can see, the median and the mean become the same when the mean is used to fill in the interval
+
+##Are there differences in activity patterns between the weekdays and weekends
+Create a factor variable with two levels "weekday" and "weekend"
+```{r}
+completeactivity$datetype <- ifelse(as.POSIXlt(completeactivity$date)$wday %in% c(0,6), 'weekend','weekday')
+head(completeactivity)
+```
+This creates the new variable called "datetype"
+
+Now the weekday and weekend need to be subsetted to be aggregated:
+```{r}
+weekday <- completeactivity[completeactivity$datetype == "weekday",]
+weekend <- completeactivity[completeactivity$datetype =="weekend",]
+```
+Now need to compare the subsets weekday and weekend by aggregating the intervals (note this can be done with ggplot2, however, due to recent update in R, the package is not working so the base plotting system is used)
+```{r}
+weekdayinterval <- aggregate(x=list(meansteps=weekday$steps), by=list(interval=weekday$interval), FUN=mean, na.rm=TRUE)
+
+weekendinterval <- aggregate(x=list(meansteps=weekend$steps), by=list(interval=weekend$interval), FUN=mean, na.rm=TRUE)
+```
+Here are the plots of the weekday vs the weekend
+So based on the plot, it's obvious there is more movement on the weekday, which suggests the test specimen has a life outside of work. 
+
+```{r}
+par(mfrow = c(1,1))
+plot(weekendinterval$interval, weekendinterval$meansteps, type = "l", xlab = "Interval", ylab ="Mean Steps", main = "Mean Steps taken during daily weekend")
+lines(weekdayinterval$interval, weekdayinterval$meansteps, col="blue")
+legend("topright", c("Weekend","Weekday"), lty=1, lwd=0.5, col=c("black","blue"))
+
+```
