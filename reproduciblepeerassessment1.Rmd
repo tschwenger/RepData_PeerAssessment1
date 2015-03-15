@@ -132,3 +132,14 @@ lines(weekdayinterval$interval, weekdayinterval$meansteps, col="blue")
 legend("topright", c("Weekend","Weekday"), lty=1, lwd=0.5, col=c("black","blue"))
 
 ```
+
+Here is a panel plot of the weekend vs weekday side by side:
+``` {r}
+par(mfrow = c(1,2))
+
+plot(weekendinterval$interval, weekendinterval$meansteps, type = "l", xlab = "Interval", ylab ="Mean Steps Weekend", main = "Mean Steps taken
+     during weekend intervals", col="blue")
+
+plot(weekdayinterval$interval, weekdayinterval$meansteps, type = "l", xlab = "Interval", ylab ="Mean Steps Weekday", main = "Mean Steps taken 
+     during Weekday intervals", col="red")
+```
